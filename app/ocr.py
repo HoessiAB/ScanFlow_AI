@@ -15,6 +15,8 @@ from pdf2image import convert_from_path
 from app.config import OCR_LANG, OCR_MAX_CHARS
 from app.utils import logger
 
+BATCH_MAX_CHARS_PER_PAGE = 800
+
 
 def extract_text(file_path: Path) -> str:
     """
@@ -42,6 +44,31 @@ def extract_text(file_path: Path) -> str:
 
     logger.info("OCR fertig: %s → %d Zeichen", file_path.name, len(text))
     return text
+
+
+def extract_text_per_page(page_paths: list[Path]) -> list[str]:
+    """
+    OCR für eine Liste einzelner Seitenbilder (Batch-Modus).
+
+    Gibt eine Liste von Texten zurück – ein Eintrag pro Seite.
+    Leere Seiten (< 20 Zeichen OCR-Text) werden als leerer String geliefert.
+    """
+    results: list[str] = []
+    for path in page_paths:
+        try:
+            text = _ocr_image(path).strip()
+            if len(text) < 20:
+                logger.info("Seite %s: leer / kein Text", path.name)
+                results.append("")
+                continue
+            if len(text) > BATCH_MAX_CHARS_PER_PAGE:
+                text = text[:BATCH_MAX_CHARS_PER_PAGE]
+            results.append(text)
+            logger.info("OCR Seite %s: %d Zeichen", path.name, len(text))
+        except Exception as exc:
+            logger.error("OCR fehlgeschlagen für %s: %s", path.name, exc)
+            results.append("")
+    return results
 
 
 def _ocr_image(path: Path) -> str:
