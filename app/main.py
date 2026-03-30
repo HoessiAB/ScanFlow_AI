@@ -10,9 +10,10 @@ Batch-Modus (mehrere Dokumente auf einmal scannen):
 """
 
 import io
+import subprocess
+import tempfile
 from pathlib import Path
 
-import pytesseract
 from PIL import Image
 from pypdf import PdfWriter
 
@@ -27,16 +28,41 @@ from app.utils import logger, log_result, log_error, today_str
 
 _IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tiff", ".tif", ".bmp"}
 
+PDF_JPEG_QUALITY = 75
 
-# ── Durchsuchbare PDF-Erzeugung ─────────────────────────────────────────
+
+# ── Durchsuchbare PDF-Erzeugung (JPEG-komprimiert) ──────────────────────
 
 def _image_to_searchable_pdf(image_path: Path) -> bytes:
-    """Erzeugt aus einem Bild ein durchsuchbares PDF (mit eingebetteter Textebene)."""
+    """
+    Erzeugt aus einem Bild ein durchsuchbares, JPEG-komprimiertes PDF.
+
+    Speichert das Bild als JPEG-Zwischendatei und ruft Tesseract direkt auf,
+    damit die PDF JPEG-komprimierte Bilder enthält statt unkomprimierter Bitmaps.
+    """
     img = Image.open(image_path)
     if img.mode in ("RGBA", "P"):
         img = img.convert("RGB")
-    pdf_bytes = pytesseract.image_to_pdf_or_hocr(img, lang=OCR_LANG, extension="pdf")
-    img.close()
+
+    with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
+        tmp_jpg = Path(tmp.name)
+
+    try:
+        img.save(tmp_jpg, format="JPEG", quality=PDF_JPEG_QUALITY, optimize=True)
+        img.close()
+
+        tmp_out = tmp_jpg.with_suffix("")
+        subprocess.run(
+            ["tesseract", str(tmp_jpg), str(tmp_out), "-l", OCR_LANG, "pdf"],
+            check=True, capture_output=True,
+        )
+
+        pdf_path = tmp_out.with_suffix(".pdf")
+        pdf_bytes = pdf_path.read_bytes()
+    finally:
+        tmp_jpg.unlink(missing_ok=True)
+        tmp_out.with_suffix(".pdf").unlink(missing_ok=True)
+
     return pdf_bytes
 
 
