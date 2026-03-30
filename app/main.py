@@ -19,7 +19,7 @@ from app.ai import (
     AnalysisResult, BatchDocument,
 )
 from app.rename import build_filename, move_to_output
-from app.utils import logger, log_result, log_error
+from app.utils import logger, log_result, log_error, today_str
 
 _IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tiff", ".tif", ".bmp"}
 
@@ -134,7 +134,7 @@ def process_batch(batch_dir: Path) -> list[dict]:
             analysis = analyze_document(text)
         else:
             analysis = AnalysisResult(
-                datum=__import__("app.utils", fromlist=["today_str"]).today_str(),
+                datum=today_str(),
                 kategorie="Sonstiges", titel="Unbekanntes_Dokument",
             )
         documents = [BatchDocument(
