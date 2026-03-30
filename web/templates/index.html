@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Dashboard</h1>
+    <form method="post" action="{{ url_for('test_process') }}" class="inline-form">
+        <button type="submit" class="btn btn-primary">Testverarbeitung starten</button>
+    </form>
+</div>
+
+<div class="status-cards" id="statusCards">
+    <div class="card">
+        <div class="card-value" id="inboxCount">-</div>
+        <div class="card-label">Inbox</div>
+    </div>
+    <div class="card">
+        <div class="card-value" id="outputCount">-</div>
+        <div class="card-label">Verarbeitet</div>
+    </div>
+    <div class="card">
+        <div class="card-value" id="nasStatus">-</div>
+        <div class="card-label">NAS</div>
+    </div>
+    <div class="card">
+        <div class="card-value" id="apiStatus">-</div>
+        <div class="card-label">API-Key</div>
+    </div>
+</div>
+
+<h2>Letzte Verarbeitungen</h2>
+
+{% if history %}
+<div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Zeit</th>
+                <th>Originaldatei</th>
+                <th>Neuer Name</th>
+                <th>Kategorie</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in history %}
+            <tr>
+                <td>{{ item.time }}</td>
+                <td class="mono">{{ item.original }}</td>
+                <td class="mono">{{ item.new_name or '-' }}</td>
+                <td><span class="badge">{{ item.kategorie or '-' }}</span></td>
+                <td>
+                    {% if item.status == 'OK' %}
+                    <span class="status-ok">OK</span>
+                    {% else %}
+                    <span class="status-err">{{ item.status }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="empty-state">
+    <p>Noch keine Dokumente verarbeitet.</p>
+    <p>Lege eine Datei in den Inbox-Ordner oder starte eine Testverarbeitung.</p>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,10 @@
+# ScanFlow AI – Python-Abhängigkeiten
+
+flask>=3.0
+openai>=1.0
+python-dotenv>=1.0
+pytesseract>=0.3
+Pillow>=10.0
+pdf2image>=1.16
+watchdog>=4.0
+gunicorn>=22.0

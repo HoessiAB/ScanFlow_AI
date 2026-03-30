@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title_extra %} – Logs{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>System-Logs</h1>
+</div>
+
+<div class="log-container">
+    <pre id="logContent">{{ log_content or 'Keine Log-Einträge vorhanden.' }}</pre>
+</div>
+{% endblock %}

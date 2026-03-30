@@ -1,0 +1,332 @@
+/* ═══════════════════════════════════════════════════════════════
+   ScanFlow AI – Minimalistisches UI
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+    --bg:        #0f1117;
+    --surface:   #1a1d27;
+    --border:    #2a2d3a;
+    --text:      #e4e4e7;
+    --text-dim:  #8b8d97;
+    --primary:   #6366f1;
+    --primary-h: #818cf8;
+    --success:   #22c55e;
+    --error:     #ef4444;
+    --warning:   #f59e0b;
+    --radius:    8px;
+    --shadow:    0 1px 3px rgba(0,0,0,.4);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── Navbar ───────────────────────────────────────────────────── */
+
+.navbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: .75rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.nav-brand {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.nav-icon { font-size: 1.5rem; }
+
+.nav-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -.5px;
+}
+
+.nav-links {
+    display: flex;
+    gap: .25rem;
+}
+
+.nav-links a {
+    color: var(--text-dim);
+    text-decoration: none;
+    padding: .4rem .8rem;
+    border-radius: var(--radius);
+    font-size: .9rem;
+    transition: all .15s ease;
+}
+
+.nav-links a:hover { color: var(--text); background: var(--border); }
+.nav-links a.active { color: var(--primary-h); background: rgba(99,102,241,.15); }
+
+/* ── Container ────────────────────────────────────────────────── */
+
+.container {
+    max-width: 960px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 1.5rem;
+    flex: 1;
+}
+
+/* ── Page Header ──────────────────────────────────────────────── */
+
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+}
+
+.page-header h1 {
+    font-size: 1.4rem;
+    font-weight: 600;
+}
+
+/* ── Buttons ──────────────────────────────────────────────────── */
+
+.btn {
+    display: inline-block;
+    padding: .5rem 1rem;
+    border: none;
+    border-radius: var(--radius);
+    font-size: .875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all .15s ease;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: #fff;
+}
+
+.btn-primary:hover { background: var(--primary-h); }
+
+/* ── Status Cards ─────────────────────────────────────────────── */
+
+.status-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: .75rem;
+    margin-bottom: 2rem;
+}
+
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    text-align: center;
+}
+
+.card-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--primary-h);
+}
+
+.card-label {
+    font-size: .8rem;
+    color: var(--text-dim);
+    margin-top: .25rem;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+/* ── Table ────────────────────────────────────────────────────── */
+
+h2 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: .75rem;
+}
+
+.table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .85rem;
+}
+
+thead { background: var(--surface); }
+
+th, td {
+    padding: .6rem .75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+
+th {
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    font-size: .75rem;
+    letter-spacing: .5px;
+}
+
+tbody tr:hover { background: rgba(99,102,241,.05); }
+
+.mono {
+    font-family: "SF Mono", "Fira Code", monospace;
+    font-size: .8rem;
+    word-break: break-all;
+}
+
+.badge {
+    background: rgba(99,102,241,.15);
+    color: var(--primary-h);
+    padding: .15rem .5rem;
+    border-radius: 4px;
+    font-size: .8rem;
+    font-weight: 500;
+}
+
+.status-ok  { color: var(--success); font-weight: 600; }
+.status-err { color: var(--error); font-weight: 600; }
+
+/* ── Empty State ──────────────────────────────────────────────── */
+
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-dim);
+    background: var(--surface);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+}
+
+.empty-state p + p { margin-top: .5rem; font-size: .9rem; }
+
+/* ── Log Container ────────────────────────────────────────────── */
+
+.log-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    overflow-x: auto;
+}
+
+.log-container pre {
+    font-family: "SF Mono", "Fira Code", monospace;
+    font-size: .8rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: var(--text-dim);
+}
+
+/* ── Settings Form ────────────────────────────────────────────── */
+
+.settings-form {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    max-width: 500px;
+}
+
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+.form-group label {
+    display: block;
+    font-size: .85rem;
+    font-weight: 600;
+    margin-bottom: .35rem;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: .5rem .75rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: .9rem;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(99,102,241,.2);
+}
+
+.form-group small {
+    display: block;
+    margin-top: .25rem;
+    font-size: .8rem;
+    color: var(--text-dim);
+}
+
+/* ── Alerts ───────────────────────────────────────────────────── */
+
+.alert {
+    padding: .75rem 1rem;
+    border-radius: var(--radius);
+    margin-bottom: 1rem;
+    font-size: .9rem;
+}
+
+.alert-success {
+    background: rgba(34,197,94,.1);
+    border: 1px solid rgba(34,197,94,.3);
+    color: var(--success);
+}
+
+.alert-error {
+    background: rgba(239,68,68,.1);
+    border: 1px solid rgba(239,68,68,.3);
+    color: var(--error);
+}
+
+/* ── Footer ───────────────────────────────────────────────────── */
+
+.footer {
+    text-align: center;
+    padding: 1rem;
+    font-size: .8rem;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+}
+
+/* ── Responsive ───────────────────────────────────────────────── */
+
+@media (max-width: 600px) {
+    .navbar {
+        flex-direction: column;
+        gap: .5rem;
+    }
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: .75rem;
+    }
+    .status-cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
