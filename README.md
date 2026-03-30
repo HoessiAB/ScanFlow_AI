@@ -119,7 +119,7 @@ Webinterface: `http://IP-DER-VM`
 |-----------|-------------|
 | Scanner | SANE |
 | OCR | Tesseract |
-| KI | OpenAI API (gpt-4o-mini) |
+| KI | OpenAI API (gpt-5.4-nano) |
 | Backend | Python |
 | Webinterface | Flask |
 | Reverse Proxy | Nginx |

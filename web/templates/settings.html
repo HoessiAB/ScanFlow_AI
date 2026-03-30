@@ -18,10 +18,9 @@
     <div class="form-group">
         <label for="model">OpenAI Modell</label>
         <select id="model" name="model">
-            <option value="gpt-4o-mini" {% if current_model == 'gpt-4o-mini' %}selected{% endif %}>gpt-4o-mini (empfohlen)</option>
+            <option value="gpt-5.4-nano" {% if current_model == 'gpt-5.4-nano' %}selected{% endif %}>gpt-5.4-nano (empfohlen)</option>
+            <option value="gpt-4o-mini" {% if current_model == 'gpt-4o-mini' %}selected{% endif %}>gpt-4o-mini</option>
             <option value="gpt-4o" {% if current_model == 'gpt-4o' %}selected{% endif %}>gpt-4o</option>
-            <option value="gpt-4-turbo" {% if current_model == 'gpt-4-turbo' %}selected{% endif %}>gpt-4-turbo</option>
-            <option value="gpt-3.5-turbo" {% if current_model == 'gpt-3.5-turbo' %}selected{% endif %}>gpt-3.5-turbo</option>
         </select>
     </div>
 

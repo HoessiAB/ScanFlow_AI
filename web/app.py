@@ -55,7 +55,7 @@ def settings():
     """API-Key und Einstellungen verwalten."""
     if request.method == "POST":
         api_key = request.form.get("api_key", "").strip()
-        model = request.form.get("model", "gpt-4o-mini").strip()
+        model = request.form.get("model", "gpt-5.4-nano").strip()
 
         _update_env("OPENAI_API_KEY", api_key)
         _update_env("OPENAI_MODEL", model)
@@ -64,7 +64,7 @@ def settings():
         return redirect(url_for("settings"))
 
     current_key = os.getenv("OPENAI_API_KEY", "")
-    current_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    current_model = os.getenv("OPENAI_MODEL", "gpt-5.4-nano")
     masked_key = _mask_key(current_key)
 
     return render_template("settings.html",
