@@ -199,26 +199,17 @@ def process_batch(batch_dir: Path) -> list[dict]:
 
 
 def _merge_pages_to_pdf(page_paths: list[Path], output_path: Path) -> None:
-    """Fügt mehrere Seitenbilder zu einem mehrseitigen PDF zusammen."""
-    images: list[Image.Image] = []
+    """Fügt mehrere Seitenbilder zu einem durchsuchbaren mehrseitigen PDF zusammen."""
+    writer = PdfWriter()
     try:
         for p in page_paths:
-            img = Image.open(p)
-            if img.mode in ("RGBA", "P"):
-                img = img.convert("RGB")
-            images.append(img)
+            pdf_bytes = _image_to_searchable_pdf(p)
+            writer.append(io.BytesIO(pdf_bytes))
 
-        if len(images) == 1:
-            images[0].save(output_path, "PDF", resolution=200.0)
-        else:
-            images[0].save(
-                output_path, "PDF",
-                save_all=True, append_images=images[1:],
-                resolution=200.0,
-            )
+        with open(output_path, "wb") as f:
+            writer.write(f)
     finally:
-        for img in images:
-            img.close()
+        writer.close()
 
 
 def _cleanup_batch(batch_dir: Path) -> None:
