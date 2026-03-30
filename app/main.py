@@ -1,25 +1,30 @@
 """
 ScanFlow AI – Hauptverarbeitungs-Pipeline.
 
-Ablauf einer Datei:
-  1. OCR (Texterkennung)
-  2. KI-Analyse (Datum, Kategorie, Titel)
-  3. Bild → PDF konvertieren (falls nötig)
-  4. Dateiname generieren
-  5. Datei umbenennen und verschieben
+Einzeldatei-Modus:
+  1. OCR → 2. KI-Analyse → 3. Bild→PDF → 4. Umbenennen → 5. Verschieben
+
+Batch-Modus (mehrere Dokumente auf einmal scannen):
+  1. OCR aller Seiten → 2. KI gruppiert Seiten zu Dokumenten
+  → 3. Mehrseitige PDFs erzeugen → 4. Umbenennen → 5. Verschieben
 """
 
 from pathlib import Path
 
 from PIL import Image
 
-from app.ocr import extract_text
-from app.ai import analyze_document
+from app.ocr import extract_text, extract_text_per_page
+from app.ai import (
+    analyze_document, analyze_batch,
+    AnalysisResult, BatchDocument,
+)
 from app.rename import build_filename, move_to_output
 from app.utils import logger, log_result, log_error
 
 _IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tiff", ".tif", ".bmp"}
 
+
+# ── Einzeldatei-Pipeline ────────────────────────────────────────────────
 
 def _convert_to_pdf(image_path: Path) -> Path:
     """Konvertiert ein Bild in ein echtes PDF. Gibt den PDF-Pfad zurück."""
@@ -30,7 +35,6 @@ def _convert_to_pdf(image_path: Path) -> Path:
     img.save(pdf_path, "PDF", resolution=200.0)
     img.close()
 
-    # Original-Bild löschen, da wir jetzt das PDF haben
     try:
         image_path.unlink()
     except OSError:
@@ -51,7 +55,6 @@ def process_file(file_path: Path) -> dict:
 
     logger.info("━━━ Verarbeitung gestartet: %s ━━━", original_name)
 
-    # Schritt 1: OCR
     logger.info("[1/5] OCR läuft…")
     text = extract_text(file_path)
 
@@ -59,11 +62,9 @@ def process_file(file_path: Path) -> dict:
         log_error(original_name, "OCR lieferte keinen Text")
         return _result(original_name, status="Fehler: Kein Text erkannt")
 
-    # Schritt 2: KI-Analyse
     logger.info("[2/5] KI-Analyse läuft…")
     analysis = analyze_document(text)
 
-    # Schritt 3: Bild → PDF konvertieren
     if file_path.suffix.lower() in _IMAGE_EXTENSIONS:
         logger.info("[3/5] Bild wird in PDF konvertiert…")
         try:
@@ -74,11 +75,9 @@ def process_file(file_path: Path) -> dict:
     else:
         logger.info("[3/5] Bereits PDF – keine Konvertierung nötig.")
 
-    # Schritt 4: Dateiname generieren
     logger.info("[4/5] Dateiname wird generiert…")
     new_name = build_filename(analysis)
 
-    # Schritt 5: Datei verschieben
     logger.info("[5/5] Datei wird verschoben…")
     nas_path = move_to_output(file_path, new_name)
 
@@ -94,6 +93,138 @@ def process_file(file_path: Path) -> dict:
         status="OK",
     )
 
+
+# ── Batch-Pipeline (mehrere Seiten → mehrere Dokumente) ─────────────────
+
+def process_batch(batch_dir: Path) -> list[dict]:
+    """
+    Verarbeitet ein Batch-Verzeichnis mit gescannten Seiten.
+
+    Die KI gruppiert die Seiten automatisch zu logischen Dokumenten.
+    Jedes Dokument wird als mehrseitiges PDF gespeichert.
+    """
+    batch_dir = Path(batch_dir)
+
+    pages = sorted(
+        [p for p in batch_dir.iterdir()
+         if p.suffix.lower() in _IMAGE_EXTENSIONS and not p.name.startswith(".")],
+        key=lambda p: p.name,
+    )
+
+    if not pages:
+        logger.warning("Batch leer: %s", batch_dir)
+        return []
+
+    total = len(pages)
+    logger.info("━━━ Batch-Verarbeitung: %d Seiten in %s ━━━", total, batch_dir.name)
+
+    # 1 – OCR aller Seiten
+    logger.info("[1/4] OCR aller %d Seiten…", total)
+    page_texts = extract_text_per_page(pages)
+
+    # Leere Seiten herausfiltern (Duplex-Rückseiten ohne Inhalt)
+    non_empty = [(i, t) for i, t in enumerate(page_texts) if t.strip()]
+    logger.info("%d von %d Seiten enthalten Text.", len(non_empty), total)
+
+    # 2 – KI-Analyse + Dokumenten-Trennung
+    logger.info("[2/4] KI-Analyse und Dokumenten-Trennung…")
+    if total == 1:
+        text = page_texts[0] if page_texts[0].strip() else ""
+        if text:
+            analysis = analyze_document(text)
+        else:
+            analysis = AnalysisResult(
+                datum=__import__("app.utils", fromlist=["today_str"]).today_str(),
+                kategorie="Sonstiges", titel="Unbekanntes_Dokument",
+            )
+        documents = [BatchDocument(
+            pages=[1], datum=analysis.datum,
+            kategorie=analysis.kategorie, titel=analysis.titel,
+        )]
+    else:
+        documents = analyze_batch(page_texts)
+
+    logger.info("KI hat %d Dokument(e) erkannt.", len(documents))
+
+    # 3+4 – PDFs erzeugen, benennen, verschieben
+    results: list[dict] = []
+    for i, doc in enumerate(documents, 1):
+        doc_pages = [pages[p - 1] for p in doc.pages if 1 <= p <= len(pages)]
+        if not doc_pages:
+            continue
+
+        analysis = AnalysisResult(
+            datum=doc.datum, kategorie=doc.kategorie, titel=doc.titel,
+        )
+        new_name = build_filename(analysis)
+        pdf_path = batch_dir / new_name
+
+        logger.info("[3/4] Dokument %d/%d: Seiten %s → %s",
+                     i, len(documents), doc.pages, new_name)
+
+        try:
+            _merge_pages_to_pdf(doc_pages, pdf_path)
+            logger.info("PDF erstellt: %s (%d Seiten)", new_name, len(doc_pages))
+        except Exception as exc:
+            logger.error("PDF-Erstellung fehlgeschlagen für Dok %d: %s", i, exc)
+            continue
+
+        logger.info("[4/4] Dokument %d wird verschoben…", i)
+        move_to_output(pdf_path, new_name)
+
+        log_result(f"Batch:{batch_dir.name}", new_name, doc.kategorie, "OK")
+        results.append(_result(
+            f"Batch:{batch_dir.name} (Seiten {doc.pages})",
+            new_name=new_name,
+            kategorie=doc.kategorie,
+            datum=doc.datum,
+            titel=doc.titel,
+            status="OK",
+        ))
+
+    _cleanup_batch(batch_dir)
+    logger.info("━━━ Batch fertig: %d Dokument(e) erstellt ━━━", len(results))
+    return results
+
+
+def _merge_pages_to_pdf(page_paths: list[Path], output_path: Path) -> None:
+    """Fügt mehrere Seitenbilder zu einem mehrseitigen PDF zusammen."""
+    images: list[Image.Image] = []
+    try:
+        for p in page_paths:
+            img = Image.open(p)
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+            images.append(img)
+
+        if len(images) == 1:
+            images[0].save(output_path, "PDF", resolution=200.0)
+        else:
+            images[0].save(
+                output_path, "PDF",
+                save_all=True, append_images=images[1:],
+                resolution=200.0,
+            )
+    finally:
+        for img in images:
+            img.close()
+
+
+def _cleanup_batch(batch_dir: Path) -> None:
+    """Löscht den Batch-Ordner nach erfolgreicher Verarbeitung."""
+    try:
+        for f in batch_dir.iterdir():
+            try:
+                f.unlink()
+            except OSError:
+                pass
+        batch_dir.rmdir()
+        logger.info("Batch-Ordner gelöscht: %s", batch_dir.name)
+    except OSError as exc:
+        logger.warning("Batch-Ordner konnte nicht gelöscht werden: %s", exc)
+
+
+# ── Hilfsfunktionen ─────────────────────────────────────────────────────
 
 def _result(original: str, **kwargs) -> dict:
     """Baut ein Ergebnis-Dictionary."""
