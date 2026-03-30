@@ -68,7 +68,7 @@ def analyze_document(text: str) -> AnalysisResult:
                 )},
             ],
             temperature=0.1,
-            max_tokens=100,
+            max_completion_tokens=100,
         )
         answer = response.choices[0].message.content.strip()
         return _parse(answer)

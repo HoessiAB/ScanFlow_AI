@@ -18,6 +18,12 @@ from app.main import process_file
 class ScanHandler(FileSystemEventHandler):
     """Reagiert auf neue Dateien im Inbox-Ordner."""
 
+    def __init__(self) -> None:
+        super().__init__()
+        # Dateien, die von der Pipeline erzeugt werden (z.B. PNG→PDF),
+        # sollen nicht nochmal verarbeitet werden.
+        self._processing: set[str] = set()
+
     def on_created(self, event: FileCreatedEvent) -> None:
         if event.is_directory:
             return
@@ -28,9 +34,22 @@ class ScanHandler(FileSystemEventHandler):
             logger.info("Übersprungen (falscher Typ): %s", file_path.name)
             return
 
+        # Von der Pipeline erzeugte PDF ignorieren (z.B. nach PNG→PDF)
+        stem = file_path.stem
+        if stem in self._processing:
+            logger.info("Übersprungen (Pipeline-intern): %s", file_path.name)
+            self._processing.discard(stem)
+            return
+
         # Warten, bis die Datei fertig geschrieben ist:
         # Dateigröße muss sich 3× hintereinander nicht mehr ändern.
         _wait_until_stable(file_path)
+
+        if not file_path.exists():
+            return
+
+        # Stem merken, damit die konvertierte PDF nicht nochmal getriggert wird
+        self._processing.add(file_path.stem)
 
         logger.info("Neue Datei erkannt: %s", file_path.name)
         try:
@@ -38,6 +57,8 @@ class ScanHandler(FileSystemEventHandler):
         except Exception as exc:
             logger.error("Verarbeitung fehlgeschlagen: %s – %s",
                          file_path.name, exc)
+        finally:
+            self._processing.discard(file_path.stem)
 
 
 def _wait_until_stable(path: Path, interval: float = 2.0, checks: int = 3) -> None:
