@@ -28,8 +28,9 @@ class ScanHandler(FileSystemEventHandler):
             logger.info("Übersprungen (falscher Typ): %s", file_path.name)
             return
 
-        # Kurz warten, bis die Datei fertig geschrieben ist
-        time.sleep(2)
+        # Warten, bis die Datei fertig geschrieben ist:
+        # Dateigröße muss sich 3× hintereinander nicht mehr ändern.
+        _wait_until_stable(file_path)
 
         logger.info("Neue Datei erkannt: %s", file_path.name)
         try:
@@ -37,6 +38,23 @@ class ScanHandler(FileSystemEventHandler):
         except Exception as exc:
             logger.error("Verarbeitung fehlgeschlagen: %s – %s",
                          file_path.name, exc)
+
+
+def _wait_until_stable(path: Path, interval: float = 2.0, checks: int = 3) -> None:
+    """Wartet, bis die Dateigröße sich nicht mehr ändert."""
+    stable = 0
+    last_size = -1
+    while stable < checks:
+        time.sleep(interval)
+        try:
+            size = path.stat().st_size
+        except OSError:
+            return
+        if size == last_size and size > 0:
+            stable += 1
+        else:
+            stable = 0
+            last_size = size
 
 
 def start_watching() -> None:
