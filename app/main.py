@@ -2,17 +2,21 @@
 ScanFlow AI – Hauptverarbeitungs-Pipeline.
 
 Einzeldatei-Modus:
-  1. OCR → 2. KI-Analyse → 3. Bild→PDF → 4. Umbenennen → 5. Verschieben
+  1. OCR → 2. KI-Analyse → 3. Bild→durchsuchbares PDF → 4. Umbenennen → 5. Verschieben
 
 Batch-Modus (mehrere Dokumente auf einmal scannen):
   1. OCR aller Seiten → 2. KI gruppiert Seiten zu Dokumenten
-  → 3. Mehrseitige PDFs erzeugen → 4. Umbenennen → 5. Verschieben
+  → 3. Durchsuchbare mehrseitige PDFs erzeugen → 4. Umbenennen → 5. Verschieben
 """
 
+import io
 from pathlib import Path
 
+import pytesseract
 from PIL import Image
+from pypdf import PdfWriter
 
+from app.config import OCR_LANG
 from app.ocr import extract_text, extract_text_per_page
 from app.ai import (
     analyze_document, analyze_batch,
@@ -24,23 +28,30 @@ from app.utils import logger, log_result, log_error, today_str
 _IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tiff", ".tif", ".bmp"}
 
 
-# ── Einzeldatei-Pipeline ────────────────────────────────────────────────
+# ── Durchsuchbare PDF-Erzeugung ─────────────────────────────────────────
 
-def _convert_to_pdf(image_path: Path) -> Path:
-    """Konvertiert ein Bild in ein echtes PDF. Gibt den PDF-Pfad zurück."""
-    pdf_path = image_path.with_suffix(".pdf")
+def _image_to_searchable_pdf(image_path: Path) -> bytes:
+    """Erzeugt aus einem Bild ein durchsuchbares PDF (mit eingebetteter Textebene)."""
     img = Image.open(image_path)
     if img.mode in ("RGBA", "P"):
         img = img.convert("RGB")
-    img.save(pdf_path, "PDF", resolution=200.0)
+    pdf_bytes = pytesseract.image_to_pdf_or_hocr(img, lang=OCR_LANG, extension="pdf")
     img.close()
+    return pdf_bytes
+
+
+def _convert_to_pdf(image_path: Path) -> Path:
+    """Konvertiert ein Bild in ein durchsuchbares PDF. Gibt den PDF-Pfad zurück."""
+    pdf_path = image_path.with_suffix(".pdf")
+    pdf_bytes = _image_to_searchable_pdf(image_path)
+    pdf_path.write_bytes(pdf_bytes)
 
     try:
         image_path.unlink()
     except OSError:
         pass
 
-    logger.info("Bild → PDF konvertiert: %s → %s", image_path.name, pdf_path.name)
+    logger.info("Bild → durchsuchbares PDF: %s → %s", image_path.name, pdf_path.name)
     return pdf_path
 
 
