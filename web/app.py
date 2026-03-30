@@ -11,11 +11,10 @@ from datetime import datetime
 
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 
-# Projekt-Root ermitteln (eine Ebene über /web)
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-
 import sys
-sys.path.insert(0, str(PROJECT_ROOT))
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from app.config import LOG_FILE, SCAN_INBOX, SCAN_OUTPUT, NAS_PATH, ENV_PATH
 from app.utils import ensure_dirs, logger

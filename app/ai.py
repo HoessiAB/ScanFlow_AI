@@ -4,12 +4,12 @@ ScanFlow AI – KI-Analyse (OpenAI API).
 Analysiert den OCR-Text und gibt Datum, Kategorie und Titel zurück.
 """
 
+import os
 from dataclasses import dataclass
 from datetime import datetime
 
 from openai import OpenAI
 
-from app.config import OPENAI_API_KEY, OPENAI_MODEL
 from app.utils import logger, today_str
 
 SYSTEM_PROMPT = (
@@ -48,14 +48,19 @@ def analyze_document(text: str) -> AnalysisResult:
         logger.warning("Leerer Text – Fallback-Werte werden verwendet.")
         return _fallback()
 
-    if not OPENAI_API_KEY:
+    # Key und Modell bei jedem Aufruf frisch aus der Umgebung lesen,
+    # damit Änderungen über das Webinterface sofort wirken.
+    api_key = os.getenv("OPENAI_API_KEY", "")
+    model = os.getenv("OPENAI_MODEL", "gpt-5.4-nano")
+
+    if not api_key:
         logger.error("Kein OPENAI_API_KEY konfiguriert – Fallback.")
         return _fallback()
 
     try:
-        client = OpenAI(api_key=OPENAI_API_KEY)
+        client = OpenAI(api_key=api_key)
         response = client.chat.completions.create(
-            model=OPENAI_MODEL,
+            model=model,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": USER_PROMPT_TEMPLATE.format(

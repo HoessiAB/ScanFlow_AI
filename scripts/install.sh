@@ -109,7 +109,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=$PROJECT_DIR
-ExecStart=$PROJECT_DIR/venv/bin/gunicorn --bind 127.0.0.1:5000 --workers 2 --chdir $PROJECT_DIR/web app:webapp
+ExecStart=$PROJECT_DIR/venv/bin/gunicorn --bind 127.0.0.1:5000 --workers 2 web.app:webapp
 Restart=always
 RestartSec=5
 Environment=PYTHONPATH=$PROJECT_DIR
@@ -130,12 +130,17 @@ server {
     listen 80;
     server_name _;
 
+    client_max_body_size 50M;
+
     location / {
         proxy_pass http://127.0.0.1:5000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 60s;
+        proxy_read_timeout 120s;
+        proxy_send_timeout 120s;
     }
 }
 EOF
