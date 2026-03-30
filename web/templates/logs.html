@@ -3,11 +3,61 @@
 {% block title_extra %} – Logs{% endblock %}
 
 {% block content %}
-<div class="page-header">
+<div class="page-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
     <h1>System-Logs</h1>
+    <div style="display:flex; align-items:center; gap:1rem;">
+        <label style="display:flex; align-items:center; gap:0.4rem; cursor:pointer; font-size:0.9rem;">
+            <input type="checkbox" id="autoRefresh" checked>
+            Auto-Refresh (5s)
+        </label>
+        <span id="refreshIndicator" style="font-size:0.75rem; color:#888;">&#9679; Live</span>
+    </div>
 </div>
 
 <div class="log-container">
     <pre id="logContent">{{ log_content or 'Keine Log-Einträge vorhanden.' }}</pre>
 </div>
+
+<script>
+(function() {
+    const pre = document.getElementById('logContent');
+    const checkbox = document.getElementById('autoRefresh');
+    const indicator = document.getElementById('refreshIndicator');
+    let timer = null;
+
+    function fetchLogs() {
+        fetch('/api/logs')
+            .then(r => r.json())
+            .then(data => {
+                pre.textContent = data.logs || 'Keine Log-Einträge vorhanden.';
+                indicator.style.color = '#22c55e';
+                indicator.innerHTML = '&#9679; Live';
+            })
+            .catch(() => {
+                indicator.style.color = '#ef4444';
+                indicator.innerHTML = '&#9679; Offline';
+            });
+    }
+
+    function start() {
+        if (timer) return;
+        timer = setInterval(fetchLogs, 5000);
+        indicator.style.color = '#22c55e';
+        indicator.innerHTML = '&#9679; Live';
+    }
+
+    function stop() {
+        clearInterval(timer);
+        timer = null;
+        indicator.style.color = '#888';
+        indicator.innerHTML = '&#9679; Pausiert';
+    }
+
+    checkbox.addEventListener('change', function() {
+        this.checked ? start() : stop();
+    });
+
+    start();
+})();
+</script>
 {% endblock %}

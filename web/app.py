@@ -40,14 +40,25 @@ def index():
 
 @webapp.route("/logs")
 def logs():
-    """Zeigt die Log-Datei an."""
+    """Zeigt die Log-Datei an (neueste oben)."""
     log_content = ""
     if LOG_FILE.exists():
         log_content = LOG_FILE.read_text(encoding="utf-8")
-    # Letzte 200 Zeilen anzeigen
     lines = log_content.strip().split("\n")
-    log_content = "\n".join(lines[-200:])
+    lines = list(reversed(lines[-500:]))
+    log_content = "\n".join(lines)
     return render_template("logs.html", log_content=log_content)
+
+
+@webapp.route("/api/logs")
+def api_logs():
+    """JSON-Endpoint für Live-Log-Updates."""
+    log_content = ""
+    if LOG_FILE.exists():
+        log_content = LOG_FILE.read_text(encoding="utf-8")
+    lines = log_content.strip().split("\n")
+    lines = list(reversed(lines[-500:]))
+    return jsonify({"logs": "\n".join(lines)})
 
 
 @webapp.route("/settings", methods=["GET", "POST"])
