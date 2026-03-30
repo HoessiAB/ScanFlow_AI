@@ -5,8 +5,11 @@ ScanFlow AI – Hilfsfunktionen (Logging, Dateisystem).
 import logging
 from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from app.config import LOG_FILE
+
+BERLIN = ZoneInfo("Europe/Berlin")
 
 # ── Logger einrichten ───────────────────────────────────────────────────
 LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -14,8 +17,13 @@ LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
 logger = logging.getLogger("scanflow")
 logger.setLevel(logging.INFO)
 
-_fmt = logging.Formatter("%(asctime)s | %(levelname)-7s | %(message)s",
-                         datefmt="%Y-%m-%d %H:%M:%S")
+class _BerlinFormatter(logging.Formatter):
+    def formatTime(self, record, datefmt=None):
+        dt = datetime.fromtimestamp(record.created, tz=BERLIN)
+        return dt.strftime(datefmt or "%Y-%m-%d %H:%M:%S")
+
+_fmt = _BerlinFormatter("%(asctime)s | %(levelname)-7s | %(message)s",
+                        datefmt="%Y-%m-%d %H:%M:%S")
 
 _fh = logging.FileHandler(LOG_FILE, encoding="utf-8")
 _fh.setFormatter(_fmt)
@@ -51,5 +59,5 @@ def is_allowed_file(path: Path) -> bool:
 
 
 def today_str() -> str:
-    """Heutiges Datum als YYYY-MM-DD."""
-    return datetime.now().strftime("%Y-%m-%d")
+    """Heutiges Datum als YYYY-MM-DD (Berliner Zeit)."""
+    return datetime.now(tz=BERLIN).strftime("%Y-%m-%d")

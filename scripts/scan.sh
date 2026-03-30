@@ -14,6 +14,8 @@
 #   sudo chmod +x /etc/scanbd/scripts/scan.sh
 # ═══════════════════════════════════════════════════════════════
 
+export TZ="Europe/Berlin"
+
 INBOX="/scan/inbox"
 BATCH_DIR="$INBOX/batch_$(date +%Y%m%d_%H%M%S)"
 
